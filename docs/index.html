@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карусель за 20 минут | @ira_and_ai</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --charcoal: #1C1C1E;
+            --coral: #D4736E;
+            --coral-light: #E8918C;
+            --sage: #7A9E7E;
+            --cream: #F5F0E8;
+            --cream-dim: #D9D3C7;
+            --text-primary: #F5F0E8;
+            --text-secondary: #A8A29E;
+            --text-dim: #6B6560;
+            --surface: rgba(28, 28, 30, 0.85);
+            --surface-solid: #232325;
+            --border: rgba(58, 58, 60, 0.6);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            background: #050508;
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        /* Grain overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        /* 3D Background Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+
+        /* Content layer */
+        .content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 0 16px; }
+        }
+
+        /* ============ HERO ============ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero-content { position: relative; z-index: 2; }
+
+        .hero-badge {
+            display: inline-block;
+            border: 1px solid var(--coral);
+            color: var(--coral);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 8px 24px;
+            border-radius: 100px;
+            margin-bottom: 40px;
+            backdrop-filter: blur(8px);
+            background: rgba(212,115,110,0.08);
+        }
+
+        .hero h1 {
+            font-size: clamp(42px, 10vw, 76px);
+            font-weight: 800;
+            line-height: 0.95;
+            letter-spacing: -3px;
+            margin-bottom: 24px;
+            text-shadow: 0 2px 40px rgba(0,0,0,0.5);
+        }
+
+        .hero h1 .accent { color: var(--coral); display: block; }
+
+        .hero .subtitle {
+            font-size: clamp(15px, 3.5vw, 18px);
+            color: var(--text-secondary);
+            max-width: 420px;
+            margin: 0 auto 56px;
+            font-weight: 400;
+            text-shadow: 0 1px 20px rgba(0,0,0,0.5);
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+            position: relative;
+            background: rgba(5,5,8,0.5);
+            backdrop-filter: blur(12px);
+            padding: 16px 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .hero-stat .num {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--coral);
+            line-height: 1;
+        }
+
+        .hero-stat .label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 36px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .scroll-arrow {
+            width: 20px; height: 20px;
+            border-right: 1.5px solid var(--coral);
+            border-bottom: 1.5px solid var(--coral);
+            transform: rotate(45deg);
+            animation: bounce 2s ease infinite;
+            opacity: 0.4;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.3; }
+            50% { transform: rotate(45deg) translateY(6px); opacity: 0.6; }
+        }
+
+        /* ============ GLASS PANELS ============ */
+        .glass-panel {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px; height: 100%;
+            background: linear-gradient(180deg, var(--coral), var(--sage));
+            border-radius: 4px 0 0 4px;
+        }
+
+        /* ============ INTRO ============ */
+        .intro {
+            padding: 64px 0;
+        }
+
+        .intro-text {
+            font-size: clamp(15px, 3vw, 17px);
+            color: var(--cream-dim);
+            line-height: 1.8;
+        }
+
+        .intro-text p { margin-bottom: 14px; }
+        .intro-text p:last-child { margin-bottom: 0; }
+        .intro-text strong { color: var(--cream); }
+        .intro-text .hl { color: var(--coral); font-weight: 600; }
+
+        .intro-sig {
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .intro-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--coral), var(--sage));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 16px; color: #1C1C1E;
+            flex-shrink: 0;
+        }
+
+        .intro-sig-text { font-size: 14px; color: var(--text-dim); }
+        .intro-sig-text span { color: var(--coral); font-weight: 600; }
+
+        /* ============ PROMPT ============ */
+        .prompt-section {
+            padding: 0 0 64px;
+        }
+
+        .prompt-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .prompt-num {
+            display: flex; align-items: center; justify-content: center;
+            width: 52px; height: 52px;
+            background: var(--coral);
+            color: #1C1C1E;
+            font-size: 22px; font-weight: 800;
+            border-radius: 14px;
+            flex-shrink: 0;
+            box-shadow: 0 0 20px rgba(212,115,110,0.3);
+        }
+
+        .prompt-title {
+            font-size: clamp(26px, 6vw, 36px);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+        }
+
+        .prompt-tagline {
+            font-size: 14px;
+            color: var(--sage);
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .prompt-desc {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            line-height: 1.7;
+        }
+
+        /* Tablet */
+        .tablet {
+            background: rgba(35, 35, 37, 0.9);
+            backdrop-filter: blur(16px);
+            border: 2px solid rgba(58, 58, 60, 0.8);
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            position: relative;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 60px rgba(212,115,110,0.05);
+        }
+
+        .tablet::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 15%; right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--coral), transparent);
+            opacity: 0.4;
+        }
+
+        .tablet-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(58,58,60,0.5);
+        }
+
+        .tablet-dots { display: flex; gap: 6px; }
+        .tablet-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(58,58,60,0.8); }
+        .tablet-dot.on { background: var(--coral); box-shadow: 0 0 8px rgba(212,115,110,0.4); }
+
+        .tablet-label {
+            font-size: 11px; font-weight: 600;
+            color: var(--coral);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid rgba(58,58,60,0.8);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            padding: 6px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--coral);
+            color: #1C1C1E;
+            border-color: var(--coral);
+        }
+
+        .copy-btn.copied {
+            background: var(--sage);
+            color: #1C1C1E;
+            border-color: var(--sage);
+        }
+
+        .tablet-code {
+            padding: 24px 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--cream-dim);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .tip-box {
+            background: rgba(122, 158, 126, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(122, 158, 126, 0.2);
+            border-radius: 12px;
+            padding: 20px 24px;
+        }
+
+        .tip-box h4 {
+            font-size: 12px; font-weight: 600;
+            color: var(--sage);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+        }
+
+        .tip-box ol {
+            font-size: 14px;
+            color: var(--text-secondary);
+            padding-left: 20px;
+            line-height: 1.9;
+        }
+
+        .tip-box li strong { color: var(--cream); }
+
+        /* ============ CTA ============ */
+        .cta {
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .cta-card {
+            background: var(--surface);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--coral), transparent);
+            opacity: 0.5;
+        }
+
+        .cta-eyebrow {
+            font-size: 12px;
+            color: var(--coral);
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .cta h2 {
+            font-size: clamp(28px, 7vw, 44px);
+            font-weight: 800;
+            letter-spacing: -2px;
+            margin-bottom: 16px;
+        }
+
+        .cta .desc {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 420px;
+            margin: 0 auto 36px;
+        }
+
+        .cta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto 36px;
+            text-align: left;
+        }
+
+        @media (max-width: 500px) {
+            .cta-grid { grid-template-columns: 1fr; }
+        }
+
+        .cta-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--cream-dim);
+        }
+
+        .cta-item .ic {
+            color: var(--coral);
+            font-weight: 700;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .cta-price-box {
+            display: inline-block;
+            border: 2px solid var(--coral);
+            border-radius: 20px;
+            padding: 24px 56px;
+            margin-bottom: 32px;
+            box-shadow: 0 0 40px rgba(212,115,110,0.1);
+        }
+
+        .cta-price {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--coral);
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .cta-price-sub {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        .cta-btn {
+            display: inline-block;
+            background: var(--coral);
+            color: #1C1C1E;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 17px;
+            font-weight: 700;
+            padding: 18px 56px;
+            border-radius: 14px;
+            text-decoration: none;
+            transition: all 0.2s;
+            letter-spacing: -0.3px;
+            box-shadow: 0 4px 24px rgba(212,115,110,0.3);
+        }
+
+        .cta-btn:hover {
+            background: var(--coral-light);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 36px rgba(212,115,110,0.4);
+        }
+
+        /* ============ FOOTER ============ */
+        .footer {
+            padding: 40px 0;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .footer a { color: var(--coral); text-decoration: none; }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 600px) {
+            .hero { min-height: 90vh; }
+            .hero-stats { gap: 16px; }
+            .hero-stat { padding: 12px 16px; }
+            .hero-stat .num { font-size: 32px; }
+            .glass-panel { padding: 24px; }
+            .tablet-code { font-size: 12px; padding: 16px; }
+            .cta-card { padding: 36px 24px; }
+            .cta-price-box { padding: 20px 36px; }
+            .cta-price { font-size: 40px; }
+            .cta-btn { padding: 16px 40px; width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 3D BACKGROUND -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- CONTENT -->
+<div class="content">
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="container hero-content">
+            <div class="hero-badge">free guide</div>
+            <h1>КАРУСЕЛЬ ЗА<br><span class="accent">20 МИНУТ</span></h1>
+            <p class="subtitle">Один промпт, который превратит идею в готовую карусель для Instagram</p>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="num">1</div>
+                    <div class="label">промпт</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="num">20</div>
+                    <div class="label">минут</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="num">10K</div>
+                    <div class="label">рост</div>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-hint"><div class="scroll-arrow"></div></div>
+    </section>
+
+    <!-- INTRO -->
+    <section class="intro">
+        <div class="container">
+            <div class="glass-panel">
+                <div class="intro-text">
+                    <p>Привет!</p>
+                    <p>В декабре и январе у меня прошел <strong>Хаб по каруселям</strong>. Он прошел круто &mdash; я видела, какие результаты получали ребята, как они менялись и начинали по-другому подходить к контенту.</p>
+                    <p>Сейчас я готовлю <strong>Хаб 2.0</strong> с живым ведением. А большую часть контента из первого хаба решила отдать как автоматический продукт &mdash; берёте и применяете сами.</p>
+                    <p>Я на этом выросла на <span class="hl">10 000 подписчиков</span>. Только на каруселях. Без рилсов, без коллабов, без рекламы.</p>
+                    <p>Ниже &mdash; промпт, с которого всё начинается. Бесплатно.</p>
+                </div>
+                <div class="intro-sig">
+                    <div class="intro-avatar">И</div>
+                    <div class="intro-sig-text">
+                        <span>@ira_and_ai</span><br>Ира, ИИ-стратег
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROMPT -->
+    <section class="prompt-section">
+        <div class="container">
+            <div class="prompt-header">
+                <div class="prompt-num">1</div>
+                <div>
+                    <div class="prompt-title">Генератор карусели</div>
+                    <div class="prompt-tagline">Тема &rarr; готовый сценарий на 8-10 слайдов</div>
+                </div>
+            </div>
+            <p class="prompt-desc">Вставляете тему и аудиторию &mdash; получаете сценарий карусели с хуком, мясом и призывом к действию. Один промпт вместо часа мучений.</p>
+
+            <div class="tablet">
+                <div class="tablet-bar">
+                    <div class="tablet-dots">
+                        <div class="tablet-dot on"></div>
+                        <div class="tablet-dot"></div>
+                        <div class="tablet-dot"></div>
+                    </div>
+                    <span class="tablet-label">Промпт</span>
+                    <button class="copy-btn" onclick="copyPrompt(this)">Скопировать</button>
+                </div>
+                <div class="tablet-code" id="prompt-text">РОЛЬ:
+Ты - Главный Редактор вирального медиа. Ты ненавидишь "воду" и банальности.
+Твоя задача — создать сценарий Instagram-карусели (8-10 слайдов), которую невозможно пролистнуть.
+
+ВВОДНЫЕ:
+Тема: [ВСТАВЬ ТЕМУ]
+Целевая аудитория: [КТО ЧИТАЕТ]
+
+СТРОГИЕ ТРЕБОВАНИЯ К СТИЛЮ:
+Плотность: 1 слайд = 1 законченная, мощная мысль. Никаких лишних слов.
+Полярность: Текст должен быть спорным, любопытным или ломающим стереотипы.
+
+Лимиты:
+ЗАГОЛОВОК: Строго до 40 символов (жирно, капс).
+ТЕКСТ: Строго до 160 символов (1-3 предложения).
+Без банальщины: Запрещены вопросы "А вы согласны?". Запрещены фразы "Важно понимать". Только суть.
+
+СТРУКТУРА КАРУСЕЛИ (Сюжетная Арка):
+Слайд 1 (Хук): Удар по боли или провокация. Должен остановить скролл.
+Слайд 2 (Контекст): Почему это касается читателя прямо сейчас?
+Слайды 3-7 (Мясо): Разрушение мифов, инсайты, шаги.
+Слайд 8 (Вывод): Финальная точка.
+Слайд 9 (CTA): Призыв к действию.</div>
+            </div>
+
+            <div class="tip-box">
+                <h4>Как использовать</h4>
+                <ol>
+                    <li>Замените <strong>[ВСТАВЬ ТЕМУ]</strong> на вашу тему</li>
+                    <li>Замените <strong>[КТО ЧИТАЕТ]</strong> на описание вашей аудитории</li>
+                    <li>Вставьте в ChatGPT, Claude или Perplexity</li>
+                    <li>Получите готовый сценарий за 2 минуты</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-card">
+                <p class="cta-eyebrow">Это 1 промпт из 15</p>
+                <h2>Хотите всю систему?</h2>
+                <p class="desc">Промпт выше даёт структуру. А полная система даёт карусель, которую сохраняют и репостят.</p>
+
+                <div class="cta-grid">
+                    <div class="cta-item"><span class="ic">+</span><span>15 промптов</span></div>
+                    <div class="cta-item"><span class="ic">+</span><span>3 AI-агента</span></div>
+                    <div class="cta-item"><span class="ic">+</span><span>Визуальный арсенал</span></div>
+                    <div class="cta-item"><span class="ic">+</span><span>Master Prompt</span></div>
+                    <div class="cta-item"><span class="ic">+</span><span>2 видеоурока</span></div>
+                    <div class="cta-item"><span class="ic">+</span><span>Контент-план</span></div>
+                    <div class="cta-item"><span class="ic">+</span><span>Скользкая горка</span></div>
+                    <div class="cta-item"><span class="ic">+</span><span>Чек-листы</span></div>
+                </div>
+
+                <div class="cta-price-box">
+                    <div class="cta-price">4 900 &#8381;</div>
+                    <div class="cta-price-sub">Доступ навсегда</div>
+                </div>
+
+                <br><br>
+
+                <a class="cta-btn" href="#">Забрать полную систему</a>
+            </div>
+        </div>
+    </section>
+
+    <div class="footer">
+        <div class="container">
+            <a href="https://instagram.com/ira_and_ai" target="_blank">@ira_and_ai</a> &mdash; Система Ленивого Контента
+        </div>
+    </div>
+
+</div>
+
+<!-- SCRIPTS -->
+<script>
+function copyPrompt(btn) {
+    const text = document.getElementById('prompt-text').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Скопировано!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = 'Скопировать';
+            btn.classList.remove('copied');
+        }, 2000);
+    });
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const PALETTE = {
+    screenBG: new THREE.Color(0x2a1d1d),
+    screenLight: new THREE.Color(0xffaa90),
+    screenHighlight: new THREE.Color(0xff4d4d),
+    gloveDark: new THREE.Color(0x2b2b30),
+    gloveGreen: new THREE.Color(0x556b60),
+    glovePad: new THREE.Color(0x7da08c),
+    skin: new THREE.Color(0xbd8e82),
+    wire: new THREE.Color(0x1a1a1a)
+};
+
+const VOXEL_SIZE = 1;
+const GAP = 0.05;
+
+const canvas = document.getElementById('bg-canvas');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050508);
+scene.fog = new THREE.FogExp2(0x050508, 0.015);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 24, 32);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ReinhardToneMapping;
+
+const screenLight = new THREE.PointLight(0xff7e6b, 200, 50);
+screenLight.position.set(0, 2, 0);
+scene.add(screenLight);
+
+scene.add(new THREE.AmbientLight(0x404060, 0.5));
+const moonLight = new THREE.DirectionalLight(0xaaccff, 0.5);
+moonLight.position.set(-10, 20, -10);
+scene.add(moonLight);
+
+const voxels = [];
+function addVoxel(x, y, z, color) { voxels.push({ x, y, z, color }); }
+
+function buildTablet() {
+    const w = 26, h = 18;
+    for (let x = -w/2; x < w/2; x++) {
+        for (let y = -h/2; y < h/2; y++) {
+            addVoxel(x, 0, y, PALETTE.gloveDark);
+            if (x <= -w/2+1 || x >= w/2-2 || y <= -h/2+1 || y >= h/2-2) {
+                addVoxel(x, 1, y, PALETTE.gloveGreen);
+            } else {
+                addVoxel(x, 1, y, PALETTE.screenBG);
+                if (Math.random() > 0.85) {
+                    addVoxel(x, 1.2, y, Math.random() > 0.5 ? PALETTE.screenLight : PALETTE.screenHighlight);
+                }
+            }
+        }
+    }
+    for (let x = -8; x < -3; x++) for (let y = -4; y < 4; y++) addVoxel(x, 1.2, y, PALETTE.screenHighlight);
+    for (let y = -5; y < 5; y+=2) for (let x = 2; x < 9; x++) addVoxel(x, 1.2, y, PALETTE.screenLight);
+}
+
+function buildHand(isLeft) {
+    const side = isLeft ? -1 : 1;
+    const offX = isLeft ? -16 : 16;
+    const offZ = 8;
+    for (let x=0;x<6;x++) for (let y=0;y<4;y++) for (let z=0;z<5;z++) addVoxel((x*side)+offX, y-2, z+offZ+4, PALETTE.gloveGreen);
+    for (let x=0;x<5;x++) for (let y=0;y<2;y++) for (let z=0;z<6;z++) addVoxel((x*side)+offX+(side*2), y, z+offZ, PALETTE.gloveDark);
+    for (let x=1;x<4;x++) for (let z=1;z<5;z++) {
+        addVoxel((x*side)+offX+(side*2), 2, z+offZ, PALETTE.glovePad);
+        if (x===2 && z===3) addVoxel((x*side)+offX+(side*2), 2.2, z+offZ, new THREE.Color(0x00ff00));
+    }
+    const fp = [0,1.5,3,4.5], fl = [4,5,4.5,3.5];
+    fp.forEach((f,i) => {
+        const len=fl[i], startX=isLeft?offX-3:offX+7, startZ=offZ+f;
+        for (let l=0;l<len;l++) {
+            let yC=0; if(l>1)yC=-1; if(l>3)yC=-2;
+            let xP=isLeft?(startX+l):(startX-l);
+            addVoxel(xP, yC, startZ, PALETTE.skin);
+            if(l<3) addVoxel(xP, yC+1, startZ, PALETTE.gloveDark);
+            if(l===0) addVoxel(xP, yC+1.5, startZ, PALETTE.glovePad);
+        }
+    });
+    const tX=isLeft?offX+1:offX+3;
+    for (let l=0;l<4;l++) addVoxel(isLeft?tX+l:tX-l, 1, offZ-2+(l*0.5), PALETTE.gloveDark);
+    const wC=isLeft?-1:1;
+    for (let i=0;i<8;i++) {
+        addVoxel(offX+(side*3), -1-i, offZ+8+(i*2), PALETTE.wire);
+        addVoxel(offX+(side*3)+wC, -2-i, offZ+8+(i*1.5), PALETTE.wire);
+    }
+}
+
+buildTablet();
+buildHand(true);
+buildHand(false);
+
+const geo = new THREE.BoxGeometry(VOXEL_SIZE-GAP, VOXEL_SIZE-GAP, VOXEL_SIZE-GAP);
+const mat = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.1 });
+const mesh = new THREE.InstancedMesh(geo, mat, voxels.length);
+const dummy = new THREE.Object3D();
+
+voxels.forEach((v,i) => {
+    dummy.position.set(v.x*VOXEL_SIZE, v.y*VOXEL_SIZE, v.z*VOXEL_SIZE);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+    mesh.setColorAt(i, v.color);
+});
+
+mesh.instanceMatrix.needsUpdate = true;
+mesh.instanceColor.needsUpdate = true;
+mesh.position.y = -2;
+scene.add(mesh);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+bloom.threshold = 0.2;
+bloom.strength = 1.2;
+bloom.radius = 0.5;
+composer.addPass(bloom);
+
+const clock = new THREE.Clock();
+let angle = 0;
+
+function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    // Slow auto-rotate
+    angle += 0.002;
+    camera.position.x = 32 * Math.sin(angle);
+    camera.position.z = 32 * Math.cos(angle);
+    camera.position.y = 24 + Math.sin(t * 0.3) * 2;
+    camera.lookAt(0, 0, 0);
+
+    mesh.position.y = -2 + Math.sin(t * 0.5) * 0.5;
+    mesh.rotation.x = Math.sin(t * 0.3) * 0.05;
+    screenLight.intensity = 150 + Math.sin(t * 10) * 20;
+
+    composer.render();
+}
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+
+</body>
+</html>
