@@ -504,6 +504,90 @@
         }
 
         /* ============ FOOTER ============ */
+        /* ============ TELEGRAM ============ */
+        .telegram {
+            padding: 0 0 64px;
+            text-align: center;
+        }
+
+        .telegram-card {
+            background: rgba(122, 158, 126, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(122, 158, 126, 0.2);
+            border-radius: 20px;
+            padding: 40px 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .telegram-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--sage), transparent);
+            opacity: 0.5;
+        }
+
+        .telegram-icon {
+            width: 48px; height: 48px;
+            background: var(--sage);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 0 24px rgba(122, 158, 126, 0.2);
+        }
+
+        .telegram-icon svg {
+            width: 24px; height: 24px;
+            fill: #1C1C1E;
+        }
+
+        .telegram-card h3 {
+            font-size: clamp(20px, 5vw, 26px);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            color: var(--cream);
+        }
+
+        .telegram-card .telegram-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            max-width: 380px;
+            margin: 0 auto 28px;
+            line-height: 1.7;
+        }
+
+        .telegram-btn {
+            display: inline-block;
+            background: var(--sage);
+            color: #1C1C1E;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 14px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.2s;
+            letter-spacing: -0.2px;
+            box-shadow: 0 4px 20px rgba(122, 158, 126, 0.25);
+        }
+
+        .telegram-btn:hover {
+            background: #8fb893;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(122, 158, 126, 0.35);
+        }
+
+        @media (max-width: 600px) {
+            .telegram-card { padding: 32px 24px; }
+            .telegram-btn { width: 100%; text-align: center; }
+        }
+
         .footer {
             padding: 40px 0;
             text-align: center;
@@ -660,8 +744,8 @@
                 </div>
 
                 <div class="cta-price-box">
-                    <div class="cta-price">3 900 &#8381;</div>
-                    <div class="cta-price-sub">Мгновенный доступ после оплаты</div>
+                    <div class="cta-price">4 900 &#8381;</div>
+                    <div class="cta-price-sub">Доступ навсегда</div>
                 </div>
 
                 <br><br>
@@ -671,9 +755,23 @@
         </div>
     </section>
 
+    <!-- TELEGRAM -->
+    <section class="telegram">
+        <div class="container">
+            <div class="telegram-card">
+                <div class="telegram-icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                </div>
+                <h3>Не готовы к покупке? Ок.</h3>
+                <p class="telegram-desc">Разборы, кейсы, промпты &mdash; каждый день в канале. Бесплатно, без воды, только то, что работает.</p>
+                <a class="telegram-btn" href="https://t.me/ira_and_ai" target="_blank">Подписаться на канал</a>
+            </div>
+        </div>
+    </section>
+
     <div class="footer">
         <div class="container">
-            <a href="https://t.me/ira_and_ai" target="_blank">@ira_and_ai</a> &mdash; Система Ленивого Контента
+            <a href="https://instagram.com/ira_and_ai" target="_blank">@ira_and_ai</a> &mdash; Система Ленивого Контента
         </div>
     </div>
 
